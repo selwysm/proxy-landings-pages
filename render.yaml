@@ -6,9 +6,13 @@ services:
     buildCommand: npm install
     startCommand: npm start
     envVars:
+      # Mi propio sitio a proxiar (debe ser un subdominio DISTINTO al que sirve
+      # este proxy, para no crear un bucle).
       - key: TARGET
         value: https://clase.alexandramarin.co
-      - key: DELAY_MS
+      # Latencia de carga de la pagina (ms). 0 = sin retraso.
+      - key: SERVER_DELAY_MS
+        value: "0"
+      # Duracion del overlay "Cargando..." al enviar el formulario (ms).
+      - key: FORM_DELAY_MS
         value: "30000"
-      - key: REDIRECT_TO
-        value: /gracias

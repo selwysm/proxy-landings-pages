@@ -7,53 +7,61 @@ import {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Origen real que vamos a proxiar (la pagina con el formulario).
+// Mi propio sitio que voy a proxiar. OJO: debe ser un dominio DISTINTO al que
+// sirve este proxy, si no se llamaria a si mismo en bucle.
 const TARGET = process.env.TARGET || "https://clase.alexandramarin.co";
 
-// A donde redirigir despues de la "carga" simulada.
-const REDIRECT_TO = process.env.REDIRECT_TO || "/gracias";
+// Latencia artificial (ms) para la CARGA de la pagina (lado servidor).
+const SERVER_DELAY_MS = Number(process.env.SERVER_DELAY_MS || 0);
 
-// Cuanto tiempo simular la mala conexion (milisegundos).
-const DELAY_MS = Number(process.env.DELAY_MS || 30000);
+// Duracion del overlay "Cargando..." al ENVIAR el formulario (ms).
+const FORM_DELAY_MS = Number(process.env.FORM_DELAY_MS || 30000);
 
 // ---------------------------------------------------------------------------
-// Script que se inyecta en el HTML: intercepta el envio del formulario,
-// muestra una pantalla de "cargando" durante DELAY_MS y luego redirige.
+// Script inyectado: al enviar el formulario muestra "Cargando..." durante
+// FORM_DELAY_MS y LUEGO deja continuar el envio real (la reserva se registra).
 // ---------------------------------------------------------------------------
 const INYECCION = `
 <script>
 (function () {
-  var DELAY = ${DELAY_MS};
-  var DESTINO = ${JSON.stringify(REDIRECT_TO)};
+  var DELAY = ${FORM_DELAY_MS};
+  var yaProcesado = new WeakSet();
 
   var estilo = document.createElement("style");
-  estilo.textContent =
-    "@keyframes __sp{to{transform:rotate(360deg)}}";
+  estilo.textContent = "@keyframes __sp{to{transform:rotate(360deg)}}";
   document.head.appendChild(estilo);
 
   function mostrarCarga() {
-    var overlay = document.createElement("div");
-    overlay.style.cssText =
+    var o = document.createElement("div");
+    o.id = "__overlayCarga";
+    o.style.cssText =
       "position:fixed;inset:0;background:rgba(255,255,255,.95);" +
       "display:flex;align-items:center;justify-content:center;" +
       "z-index:2147483647;font-family:sans-serif;color:#333";
-    overlay.innerHTML =
+    o.innerHTML =
       '<div style="text-align:center">' +
       '<div style="width:52px;height:52px;border:5px solid #ddd;' +
       "border-top-color:#555;border-radius:50%;margin:0 auto 18px;" +
       'animation:__sp 1s linear infinite"></div>' +
-      "<p style=\\"font-size:16px\\">Cargando...</p></div>";
-    document.body.appendChild(overlay);
+      '<p style="font-size:16px">Cargando...</p></div>';
+    document.body.appendChild(o);
+    return o;
   }
 
   document.addEventListener(
     "submit",
     function (e) {
+      var form = e.target;
+      if (yaProcesado.has(form)) return; // ya lo dejamos pasar tras la espera
       e.preventDefault();
       e.stopPropagation();
-      mostrarCarga();
+      var overlay = mostrarCarga();
       setTimeout(function () {
-        window.location.href = DESTINO;
+        overlay.remove();
+        yaProcesado.add(form);
+        // Reenvia el formulario DE VERDAD: la reserva se registra normalmente.
+        if (typeof form.requestSubmit === "function") form.requestSubmit();
+        else form.submit();
       }, DELAY);
     },
     true
@@ -62,22 +70,15 @@ const INYECCION = `
 </script>
 `;
 
-// Pagina simple de "gracias" a la que redirigimos (servida por el proxy).
-app.get("/gracias", (_req, res) => {
-  res.send(
-    "<!DOCTYPE html><html lang='es'><head><meta charset='utf-8'>" +
-      "<title>Gracias</title></head>" +
-      "<body style='font-family:sans-serif;text-align:center;margin-top:80px'>" +
-      "<h1>Listo, hemos recibido tu reserva.</h1></body></html>"
-  );
+// Latencia artificial en la carga de la pagina.
+app.use((req, res, next) => {
+  if (SERVER_DELAY_MS > 0) setTimeout(next, SERVER_DELAY_MS);
+  else next();
 });
 
-// Chequeo de salud.
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
-// ---------------------------------------------------------------------------
-// Proxy inverso: reenvia todo al origen real e inyecta el script en el HTML.
-// ---------------------------------------------------------------------------
+// Proxy inverso hacia mi propio sitio, inyectando el script en el HTML.
 app.use(
   "/",
   createProxyMiddleware({
@@ -88,16 +89,11 @@ app.use(
       proxyRes: responseInterceptor(
         async (responseBuffer, proxyRes, _req, _res) => {
           const contentType = proxyRes.headers["content-type"] || "";
-          if (!contentType.includes("text/html")) {
-            return responseBuffer; // imagenes, css, js: pasan tal cual
-          }
+          if (!contentType.includes("text/html")) return responseBuffer;
           let html = responseBuffer.toString("utf8");
-          if (html.includes("</body>")) {
-            html = html.replace("</body>", INYECCION + "</body>");
-          } else {
-            html += INYECCION;
-          }
-          return html;
+          return html.includes("</body>")
+            ? html.replace("</body>", INYECCION + "</body>")
+            : html + INYECCION;
         }
       ),
     },
@@ -106,6 +102,7 @@ app.use(
 
 app.listen(PORT, () => {
   console.log(
-    `Proxy en puerto ${PORT} -> ${TARGET} (delay ${DELAY_MS}ms, redirige a ${REDIRECT_TO})`
+    `Proxy en http://localhost:${PORT} -> ${TARGET} ` +
+      `(carga +${SERVER_DELAY_MS}ms, formulario ${FORM_DELAY_MS}ms)`
   );
 });

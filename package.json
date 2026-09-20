@@ -1,7 +1,7 @@
 {
   "name": "proyecto-universidad-proxy",
   "version": "1.0.0",
-  "description": "Proxy inverso para evento.alexandramarin.co con intercepcion de formulario (Render)",
+  "description": "Proxy inverso de mi propio sitio con simulacion de conexion lenta",
   "type": "module",
   "main": "server.js",
   "scripts": {
