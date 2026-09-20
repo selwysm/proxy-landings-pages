@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: proyecto-universidad-proxy
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: TARGET
+        value: https://clase.alexandramarin.co
+      - key: DELAY_MS
+        value: "30000"
+      - key: REDIRECT_TO
+        value: /gracias
