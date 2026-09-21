@@ -17,8 +17,8 @@ const SERVER_DELAY_MS = Number(process.env.SERVER_DELAY_MS || 0);
 // Duracion del overlay "Cargando..." al enviar el formulario (ms).
 const FORM_DELAY_MS = Number(process.env.FORM_DELAY_MS || 30000);
 
-// A donde redirigir despues de la carga lenta (pagina de gracias).
-const REDIRECT_TO = process.env.REDIRECT_TO || "/gracias";
+// A donde redirigir despues de la carga lenta (siguiente paso del embudo).
+const REDIRECT_TO = process.env.REDIRECT_TO || "/unirse-al-grupo";
 
 // ---------------------------------------------------------------------------
 // Script inyectado: al enviar el formulario muestra "Cargando..." durante
@@ -71,20 +71,10 @@ app.use((req, res, next) => {
   else next();
 });
 
-// Pagina de gracias (servida por el proxy).
-app.get("/gracias", (_req, res) => {
-  res.type("html").send(
-    "<!DOCTYPE html><html lang='es'><head><meta charset='utf-8'>" +
-      "<meta name='viewport' content='width=device-width, initial-scale=1'>" +
-      "<title>Gracias</title></head>" +
-      "<body style='font-family:system-ui,sans-serif;text-align:center;margin-top:90px;color:#222'>" +
-      "<h1>¡Gracias! Tu cupo quedó reservado.</h1>" +
-      "<p style='color:#555'>Te enviaremos los detalles muy pronto.</p>" +
-      "</body></html>"
-  );
-});
-
 app.get("/health", (_req, res) => res.json({ ok: true }));
+
+// Solo inyectamos la carga lenta en la pagina de inicio.
+const soloEnInicio = (req) => (req.url || "/").split("?")[0] === "/";
 
 // Proxy inverso hacia el contenido real, inyectando el script en el HTML.
 app.use(
@@ -95,9 +85,10 @@ app.use(
     selfHandleResponse: true,
     on: {
       proxyRes: responseInterceptor(
-        async (responseBuffer, proxyRes, _req, _res) => {
+        async (responseBuffer, proxyRes, req, _res) => {
           const contentType = proxyRes.headers["content-type"] || "";
           if (!contentType.includes("text/html")) return responseBuffer;
+          if (!soloEnInicio(req)) return responseBuffer; // otras paginas: sin cambios
           let html = responseBuffer.toString("utf8");
           return html.includes("</body>")
             ? html.replace("</body>", INYECCION + "</body>")

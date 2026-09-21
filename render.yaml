@@ -17,6 +17,6 @@ services:
       # Duracion del overlay "Cargando..." al enviar el formulario (ms).
       - key: FORM_DELAY_MS
         value: "30000"
-      # A donde redirigir tras la carga lenta (pagina de gracias).
+      # A donde redirigir tras la carga lenta (siguiente paso del embudo).
       - key: REDIRECT_TO
-        value: /gracias
+        value: /unirse-al-grupo
