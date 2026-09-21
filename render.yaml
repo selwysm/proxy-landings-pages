@@ -6,10 +6,11 @@ services:
     buildCommand: npm install
     startCommand: npm start
     envVars:
-      # Mi propio sitio a proxiar (debe ser un subdominio DISTINTO al que sirve
-      # este proxy, para no crear un bucle).
+      # Origen del contenido real (subdominio DISTINTO al que sirve el proxy,
+      # para no crear un bucle). El proxy se publica en clase.alexandramarin.co
+      # y lee el contenido desde origen.alexandramarin.co (-> Vercel).
       - key: TARGET
-        value: https://clase.alexandramarin.co
+        value: https://origen.alexandramarin.co
       # Latencia de carga de la pagina (ms). 0 = sin retraso.
       - key: SERVER_DELAY_MS
         value: "0"
