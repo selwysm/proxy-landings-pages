@@ -10,7 +10,7 @@ services:
       # proyecto (no es un subdominio nuevo de tu dominio). Reemplaza el valor
       # por la tuya: la encuentras en Vercel -> proyecto -> Domains.
       - key: TARGET
-        value: https://TU-PROYECTO.vercel.app
+        value: https://alexa-marin-sales-page.vercel.app
       # Latencia de carga de la pagina (ms). 0 = sin retraso.
       - key: SERVER_DELAY_MS
         value: "0"

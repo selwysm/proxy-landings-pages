@@ -7,9 +7,9 @@ import {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Origen del contenido real (subdominio DISTINTO al que sirve el proxy, para
-// no crear un bucle). En produccion: https://origen.alexandramarin.co
-const TARGET = process.env.TARGET || "https://clase.alexandramarin.co";
+// Origen del contenido real: la URL .vercel.app del proyecto. Debe ser una
+// direccion DISTINTA a la que sirve el proxy, para no crear un bucle.
+const TARGET = process.env.TARGET || "https://alexa-marin-sales-page.vercel.app";
 
 // Latencia artificial (ms) en la carga de la pagina (lado servidor).
 const SERVER_DELAY_MS = Number(process.env.SERVER_DELAY_MS || 0);
