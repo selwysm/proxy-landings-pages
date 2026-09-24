@@ -15,6 +15,10 @@ services:
       # .pages.dev cuando la tengas). Vacio = usa TARGET por defecto.
       - key: ORIGIN_BR
         value: ""
+      # Enlace de WhatsApp para alexandramarinbr.com. Si lo defines, el proxy
+      # reemplaza el enlace original del clon por este. Vacio = deja el original.
+      - key: WHATSAPP_BR
+        value: ""
       # Latencia de carga de la pagina (ms). 0 = sin retraso.
       - key: SERVER_DELAY_MS
         value: "0"
