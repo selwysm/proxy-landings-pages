@@ -20,3 +20,22 @@ services:
       # A donde redirigir tras la carga lenta (siguiente paso del embudo).
       - key: REDIRECT_TO
         value: /unirse-al-grupo
+      # --- Cuando aparece la carga lenta -------------------------------------
+      # Interruptor maestro (apaga TODO): true/false
+      - key: SLOW_ENABLED
+        value: "true"
+      # Flag del horario nocturno: true/false
+      - key: SLOW_SCHEDULE_ENABLED
+        value: "true"
+      # Franja horaria (hora Colombia) HH:MM
+      - key: SLOW_START
+        value: "20:00"
+      - key: SLOW_END
+        value: "07:30"
+      - key: SLOW_TZ
+        value: America/Bogota
+      # Flag del azar y su probabilidad (%)
+      - key: SLOW_RANDOM_ENABLED
+        value: "true"
+      - key: SLOW_RANDOM_PERCENT
+        value: "30"
