@@ -11,6 +11,10 @@ services:
       # por la tuya: la encuentras en Vercel -> proyecto -> Domains.
       - key: TARGET
         value: https://alexa-marin-sales-page.vercel.app
+      # Origen para alexandramarinbr.com (pega aqui su URL real .vercel.app o
+      # .pages.dev cuando la tengas). Vacio = usa TARGET por defecto.
+      - key: ORIGIN_BR
+        value: ""
       # Latencia de carga de la pagina (ms). 0 = sin retraso.
       - key: SERVER_DELAY_MS
         value: "0"

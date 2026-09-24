@@ -7,10 +7,28 @@ import {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Origen del contenido real: la URL .vercel.app del proyecto. Debe ser una
-// direccion DISTINTA a la que sirve el proxy, para no crear un bucle.
+// --- Origen del contenido por dominio (multi-dominio) -----------------------
+// El proxy elige el origen segun el dominio que entra. Cada origen debe ser
+// una direccion DISTINTA al dominio que sirve el proxy (para no crear bucle).
+// Se pueden sobreescribir con variables de entorno (utiles en Render).
+const ORIGENES = {
+  "clase.alexandramarin.co":
+    process.env.ORIGIN_CLASE || "https://alexa-marin-sales-page.vercel.app",
+  // Pendiente: pon aqui (o en la env ORIGIN_BR) la URL real que sirve
+  // alexandramarinbr.com, p.ej. https://xxxx.vercel.app o https://xxxx.pages.dev
+  "alexandramarinbr.com": process.env.ORIGIN_BR || "",
+  "www.alexandramarinbr.com": process.env.ORIGIN_BR || "",
+};
+
+// Origen por defecto si el dominio no esta en el mapa.
 const TARGET =
   process.env.TARGET || "https://alexa-marin-sales-page.vercel.app";
+
+// Devuelve el origen segun el Host de la peticion.
+const origenParaHost = (host) => {
+  const h = String(host || "").toLowerCase().split(":")[0];
+  return ORIGENES[h] || TARGET;
+};
 
 // Latencia artificial (ms) en la carga de la pagina (lado servidor).
 const SERVER_DELAY_MS = Number(process.env.SERVER_DELAY_MS || 0);
@@ -145,6 +163,8 @@ app.use(
     target: TARGET,
     changeOrigin: true,
     selfHandleResponse: true,
+    // Elige el origen segun el dominio que entra (multi-dominio).
+    router: (req) => origenParaHost(req.headers.host),
     on: {
       proxyRes: responseInterceptor(
         async (responseBuffer, proxyRes, req, _res) => {
