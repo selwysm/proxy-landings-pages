@@ -30,12 +30,21 @@ const origenParaHost = (host) => {
   return ORIGENES[h] || TARGET;
 };
 
-// --- Reemplazo del enlace de WhatsApp en el bundle de alexandramarinbr -------
-// El enlace viene "horneado" en el JS de la SPA. Si defines WHATSAPP_BR, el
-// proxy reemplaza el enlace original por el tuyo al servir el JS (configurable
-// desde Render sin recompilar el clon).
+// --- Reemplazo del enlace de WhatsApp (JS y HTML) ---------------------------
+// El enlace original viene horneado en el clon. Si defines WHATSAPP_BR, el
+// proxy lo cambia al servir JS o HTML (configurable desde Render).
 const WA_ORIGINAL_BR = "https://chat.whatsapp.com/JwSKJ2ZmaDmDm66iBkVtpS";
 const WHATSAPP_BR = process.env.WHATSAPP_BR || "";
+// GoHighLevel tambien guarda el URL escapado en el payload (\u002F).
+const escapeNuxtUrl = (s) => String(s).replaceAll("/", "\\u002F");
+const reemplazarWhatsApp = (texto) => {
+  if (!WHATSAPP_BR || !texto.includes("JwSKJ2ZmaDmDm66iBkVtpS")) return texto;
+  return texto
+    .split(WA_ORIGINAL_BR)
+    .join(WHATSAPP_BR)
+    .split(escapeNuxtUrl(WA_ORIGINAL_BR))
+    .join(escapeNuxtUrl(WHATSAPP_BR));
+};
 
 // Latencia artificial (ms) en la carga de la pagina (lado servidor).
 const SERVER_DELAY_MS = Number(process.env.SERVER_DELAY_MS || 0);
@@ -176,19 +185,21 @@ app.use(
       proxyRes: responseInterceptor(
         async (responseBuffer, proxyRes, req, _res) => {
           const contentType = proxyRes.headers["content-type"] || "";
-          // Cambiar el enlace de WhatsApp dentro del bundle JS (si esta activo).
-          if (contentType.includes("javascript") && WHATSAPP_BR) {
-            const js = responseBuffer.toString("utf8");
-            return js.includes(WA_ORIGINAL_BR)
-              ? js.split(WA_ORIGINAL_BR).join(WHATSAPP_BR)
-              : responseBuffer;
+          const esJs = contentType.includes("javascript");
+          const esHtml = contentType.includes("text/html");
+          if (!esJs && !esHtml) return responseBuffer;
+
+          let cuerpo = responseBuffer.toString("utf8");
+          cuerpo = reemplazarWhatsApp(cuerpo);
+
+          // Carga lenta solo en la home. /registro, /v-a, /v-b y /gracias
+          // se sirven tal cual (salvo el cambio de WhatsApp).
+          if (esHtml && soloEnInicio(req)) {
+            cuerpo = cuerpo.includes("</body>")
+              ? cuerpo.replace("</body>", INYECCION + "</body>")
+              : cuerpo + INYECCION;
           }
-          if (!contentType.includes("text/html")) return responseBuffer;
-          if (!soloEnInicio(req)) return responseBuffer; // otras paginas: sin cambios
-          let html = responseBuffer.toString("utf8");
-          return html.includes("</body>")
-            ? html.replace("</body>", INYECCION + "</body>")
-            : html + INYECCION;
+          return cuerpo;
         },
       ),
     },
@@ -201,6 +212,7 @@ app.listen(PORT, () => {
       `  carga lenta: maestro=${SLOW_ENABLED} ` +
       `horario=${SLOW_SCHEDULE_ENABLED}(${process.env.SLOW_START || "20:00"}-${process.env.SLOW_END || "07:30"} ${SLOW_TZ}) ` +
       `azar=${SLOW_RANDOM_ENABLED}(${Math.round(RANDOM_PROB * 100)}%) ` +
-      `delay=${FORM_DELAY_MS}ms -> ${REDIRECT_TO}`,
+      `delay=${FORM_DELAY_MS}ms -> ${REDIRECT_TO}\n` +
+      `  whatsapp: ${WHATSAPP_BR || "(sin cambio)"}`,
   );
 });
